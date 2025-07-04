@@ -26,7 +26,7 @@ class Text2SQL:
 
     def load_config(self):
         """加载配置文件"""
-        with open("config.json", "r", encoding="utf-8") as f:
+        with open("utils/config.json", "r", encoding="utf-8") as f:
             self.config = json.load(f)     
 
     def init_agent(self):

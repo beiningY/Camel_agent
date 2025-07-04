@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.societies import RolePlaying 
-from plan_agent2 import PlanAgent
+from agents.plan_agent import PlanAgent
 from colorama import Fore
 
 class ChatMultiAgent:
@@ -28,7 +28,7 @@ class ChatMultiAgent:
     def load_config(self):
         """加载配置文件"""
         try:
-            with open("config.json", "r", encoding="utf-8") as f:
+            with open("utils/config.json", "r", encoding="utf-8") as f:
                 self.config = json.load(f)
         except FileNotFoundError:
             print("警告: 未找到 config.json 文件，将使用默认值。")

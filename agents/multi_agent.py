@@ -17,7 +17,6 @@ class MainAgent:
         """加载环境变量"""
         load_dotenv(dotenv_path=".env")
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
-        
         self.api_key = os.getenv("GPT_API_KEY")
         if not self.api_key:
             raise ValueError("API_KEY 未在 .env 文件中设置")
