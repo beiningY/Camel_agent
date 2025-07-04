@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.societies import RolePlaying 
-from agents.plan_agent import PlanAgent
+from .plan_agent import PlanAgent
 from colorama import Fore
 
 class ChatMultiAgent:
@@ -118,7 +118,7 @@ class ChatMultiAgent:
 
 
 
-    def run(self, query: str, chat_turn_limit=10) -> None:
+    def run(self, query: str, chat_turn_limit=6) -> None:
         society = self.create_society(query)
         assiatant_sys_content = society.assistant_sys_msg.content
         #print(Fore.GREEN+ f"助手系统消息:\n{society.assistant_sys_msg}\n")
@@ -150,6 +150,8 @@ class ChatMultiAgent:
 
 
 if __name__ == "__main__":
-    Agent = ChatMultiAgent()
-    query = "当前监测显示:DO=3.4 mg/L，比昨日下降了 0.8 单位，pH=8.0，水温 28.5°C。 请问是否需要立即调整供氧或循环策略?如果需要，应优先采取哪些操作?"
-    Agent.run(query)
+    # 创建聊天多智能体实例
+    chat_agent = ChatMultiAgent()
+    query = "南美白对虾养殖需要注意什么？"
+    chat_agent.run(query)
+

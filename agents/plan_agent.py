@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.agents import ChatAgent
-from retrievers.vector_retriever import RAG
+from retrievers import RAG
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from agents.text2sql_agent import Text2SQL
+from .text2sql_agent import Text2SQL
 
 class IntentResult(BaseModel):
     intent: List[str]  
