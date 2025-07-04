@@ -1,4 +1,3 @@
-from colorama import Fore
 import os
 import json
 import re
@@ -7,6 +6,7 @@ from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.societies import RolePlaying 
 from plan_agent2 import PlanAgent
+from colorama import Fore
 
 class ChatMultiAgent:
     def __init__(self):
