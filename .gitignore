@@ -6,4 +6,5 @@ __pycache__/
 .env
 *.env
 
-*.pdf
+# 忽略模型目录
+models/

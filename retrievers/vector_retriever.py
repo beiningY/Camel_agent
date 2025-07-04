@@ -1,40 +1,40 @@
 import json
-from vr_chunking import chunk_data_by_title
+import time
+from embedding.vr_chunking import chunk_data_by_title, chunk_data_for_log
 from camel.embeddings import SentenceTransformerEncoder
 from camel.storages import QdrantStorage
 from camel.retrievers import VectorRetriever
 from sentence_transformers import SentenceTransformer
-import time
 
 class RAG:
-    def __init__(self, collection_name=None):
+    def __init__(self, collection_name):
         self.load_config()
         self.init_models()
-        if collection_name is None:
-            collection_name = [self.config.get("collection_name")]
         self.collection_name = collection_name
         self.init_vector_store()
 
     def load_config(self):
-        with open("config.json", "r", encoding="utf-8") as f:
+        with open("utils/config.json", "r", encoding="utf-8") as f:
             self.config = json.load(f)
 
     def init_models(self):
-        #self.embedding_model = SentenceTransformerEncoder(model_name=self.config.get("embedding_model", "intfloat/multilingual-e5-large"))  
-        #self.tokenizer = AutoTokenizer.from_pretrained(self.config.get("tokenizer_model", "intfloat/multilingual-e5-large"))
-        self.embedding_model = SentenceTransformerEncoder(model_name="./saved_model/multilingual-e5-large")
-        self.tokenizer = SentenceTransformer("./saved_model/multilingual-e5-large")
+        # 远程加载模型到缓存
+        # self.embedding_model = SentenceTransformerEncoder(model_name=self.config.get("embedding_model", "intfloat/multilingual-e5-large"))  
+        # self.tokenizer = AutoTokenizer.from_pretrained(self.config.get("tokenizer_model", "intfloat/multilingual-e5-large"))
+        # 加载本地模型
+        self.embedding_model = SentenceTransformerEncoder(model_name="models/multilingual-e5-large")
+        self.tokenizer = SentenceTransformer("models/multilingual-e5-large")
 
     def init_vector_store(self):
-        """初始化向量存储"""
+        """初始化或者加载向量存储"""
         self.vector_storage = QdrantStorage(
             vector_dim=self.embedding_model.get_output_dim(),
-            path="local_data",  
+            path="data/knowledge_base",  
             collection_name=self.collection_name,
         )
         self.vr = VectorRetriever(embedding_model=self.embedding_model, storage=self.vector_storage)
 
-    def embedding(self, data_path = None, data = None, chunk_type = chunk_data_by_title, max_tokens = 500, overlap = None):
+    def embedding(self, data_path = None, data = None, chunk_type = chunk_data_by_title, max_tokens = 500):
         """向量化"""
         if data is None:
             with open(data_path, "r") as f:
@@ -46,15 +46,15 @@ class RAG:
             MAX_TOKENS=max_tokens,
             tokenizer=self.tokenizer,
         )
-        # start_time = time.time()
+        start_time = time.time()
         for chunk in chunks:
             self.vr.process(
                 content=chunk["content"],
                 should_chunk=False,
                 extra_info={"id": chunk["chunk_id"], "title": chunk["title"], "type": chunk["type"]}
             )
-        # end_time = time.time()
-        # print(f"embedding处理时间: {end_time - start_time:.4f} 秒")
+        end_time = time.time()
+        print(f"{data_path}embedding处理时间: {end_time - start_time:.4f} 秒")
 
     def rag_retrieve(self, query, topk=None):
         """进行检索"""
