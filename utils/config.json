@@ -1,0 +1,9 @@
+{
+  "vector_top_k": 5,
+  "similarity_threshold": 0.6,
+  "embedding_model": "./saved_model/multilingual-e5-large",
+  "tokenizer_model": "./saved_model/multilingual-e5-large",
+  "temperature": 0.4,
+  "max_tokens": 4096,
+  "collection_name": "all_data"
+}
