@@ -140,7 +140,6 @@ class PlanAgent:
             if retrieved_content:
                 knowledge_context += retrieved_content
                 
-        print(Fore.YELLOW+ f"知识库检索结果:\n{knowledge_context}\n")
         return knowledge_context
     
     def cot_context(self) -> str:

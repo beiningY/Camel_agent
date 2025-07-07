@@ -118,27 +118,28 @@ class ChatMultiAgent:
 
 
 
-    def run(self, query: str, chat_turn_limit=5) -> None:
+    def run(self, query: str, chat_turn_limit=3) -> None:
         society = self.create_society(query)
         assiatant_sys_content = society.assistant_sys_msg.content
         #print(Fore.GREEN+ f"助手系统消息:\n{society.assistant_sys_msg}\n")
         #print(Fore.BLUE + f"用户系统消息:\n{society.user_sys_msg}\n")
-        print(Fore.YELLOW + f"原始问题:\n{query}\n")
-        print(Fore.CYAN+ "细化后的问题:"+ f"\n{society.specified_task_prompt}\n")
+        #print(Fore.YELLOW + f"原始问题:\n{query}\n")
+        #print(Fore.CYAN+ "细化后的问题:"+ f"\n{society.specified_task_prompt}\n")
         n = 0
         input_msg = society.init_chat()
+        output_msg = ""
         while n < chat_turn_limit:
             n += 1
             #print(Fore.YELLOW + f"第{n}轮养殖员的输入:\n{input_msg.content}\n")
             _, user_response = society.step(input_msg)
-            print(Fore.GREEN+ f"第{n}轮养殖员的输出:\n{user_response.msg.content}\n")
+            #print(Fore.GREEN+ f"第{n}轮养殖员的输出:\n{user_response.msg.content}\n")
             input_msg.content += self.rag_context(user_response.msg.content)
             #print(Fore.GREEN+ f"第{n}轮专家顾问的系统消息输入:\n{society.assistant_sys_msg.content}\n")
             if user_response.terminated:
                 print(Fore.GREEN+ ("养殖员回答终止的原因: " + f"{user_response.info['termination_reasons']}."))
                 break
             assistant_response, user_response2 = society.step(input_msg)
-            print(Fore.BLUE + f"第{n}轮专家顾问的输出:\n{assistant_response.msg.content}\n")
+            #print(Fore.BLUE + f"第{n}轮专家顾问的输出:\n{assistant_response.msg.content}\n")
             if assistant_response.terminated:
                 print(Fore.GREEN+ ("专家顾问回答终止的原因: " + f"{assistant_response.info['termination_reasons']}."))
                 break
@@ -147,11 +148,14 @@ class ChatMultiAgent:
             if "CAMEL_TASK_DONE" in assistant_response.msg.content:
                 break
             input_msg = assistant_response.msg
-
+            
+            output_msg += f"第{n}轮养殖员的输出:\n{user_response.msg.content}\n" + f"第{n}轮专家顾问的输出:\n{assistant_response.msg.content}\n"
+        return output_msg
 
 if __name__ == "__main__":
     # 创建聊天多智能体实例
     chat_agent = ChatMultiAgent()
-    query = "南美白对虾养殖需要注意什么？"
-    chat_agent.run(query)
+    query = "如何管理维护大棚供电电源。"
+    output_msg = chat_agent.run(query)
+    print(output_msg)
 

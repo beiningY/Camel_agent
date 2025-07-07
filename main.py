@@ -14,7 +14,6 @@ if __name__ == "__main__":
     preload_models()
     # 创建多智能体聊天系统
     chat_agent = ChatMultiAgent()
-    # 可以尝试多个查询，观察模型不会重复加载
     queries = [
         "南美白对虾养殖需要注意什么？",
         "循环水养殖系统的优势有哪些？",
