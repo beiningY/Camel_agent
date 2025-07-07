@@ -95,7 +95,7 @@ class PlanAgent:
         """获取默认的意图识别结果"""
         return {
             "intent": ["answer_by_knowledgebase"],
-            "knowledgebase_name": {"book_zh": 3}
+            "knowledgebase_name": {"all_data": 5}
         }
             
     def _build_plan_prompt(self, query: str) -> str:
@@ -108,15 +108,14 @@ class PlanAgent:
 - answer_by_thinking: 需要推理分析
 
 知识库类型：
-- book_zh: 养殖手册(1-5个结果)
 - log: 操作日志(1-5个结果)
 - all_data: 全部数据(1-5个结果)
-
+- book_zh: 养殖手册(1-5个结果)
 
 示例输出：
 {{
     "intent": ["answer_by_knowledgebase"],
-    "knowledgebase_name": {{"book_zh": 3}}
+    "knowledgebase_name": {{"all_data": 5}}
 }}
 
 用户问题：{query}
