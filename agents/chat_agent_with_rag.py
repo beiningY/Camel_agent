@@ -5,7 +5,7 @@ from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.messages import BaseMessage
 from camel.societies import RolePlaying 
-from RAG import RAG
+from retrievers import RAG
 
 class ChatRAGAgent:
     def __init__(self):
@@ -27,7 +27,7 @@ class ChatRAGAgent:
     def load_config(self):
         """加载配置文件"""
         try:
-            with open("config.json", "r", encoding="utf-8") as f:
+            with open("utils/config.json", "r", encoding="utf-8") as f:
                 self.config = json.load(f)
         except FileNotFoundError:
             print("警告: 未找到 config.json 文件，将使用默认值。")

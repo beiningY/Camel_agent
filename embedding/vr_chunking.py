@@ -1,7 +1,6 @@
 # ==============中文滑动窗口chunking=============
 
 def table_json_to_text(tables):
-    """图表转换为文本"""    
     all_text = []
     for table in tables:
         table_id = table.get("table_id")
@@ -15,8 +14,9 @@ def table_json_to_text(tables):
             all_text.append("")
     return "".join(all_text)
 
+
+# 通过滑动窗口对文本进行chunking
 def split_text_by_tokens(text, max_tokens, overlap, tokenizer):
-    """通过滑动窗口对文本进行chunking"""
     tokens = tokenizer.encode(text)
     chunks = []
     start = 0
@@ -33,8 +33,8 @@ def split_text_by_tokens(text, max_tokens, overlap, tokenizer):
             break
     return chunks
 
+# 对于结构化文本进行chunking
 def chunk_data_by_context(structured_chunks, MAX_TOKENS, OVERLAP, tokenizer):
-    """对于结构化文本进行chunking"""
     output_chunks = []
     chunk_counter = 0
 

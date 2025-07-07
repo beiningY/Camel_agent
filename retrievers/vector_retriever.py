@@ -1,38 +1,67 @@
 import json
 import time
-from embedding.vr_chunking import chunk_data_by_title, chunk_data_for_log
+from embedding import chunk_data_by_title, chunk_data_for_log
 from camel.embeddings import SentenceTransformerEncoder
 from camel.storages import QdrantStorage
 from camel.retrievers import VectorRetriever
-from sentence_transformers import SentenceTransformer
+import os
+from transformers import AutoTokenizer
+
+class ModelManager:
+    """避免重复加载模型"""
+    _instance = None
+    _embedding_model = None
+    _tokenizer = None
+    _config = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def get_embedding_model(self):
+        if self._embedding_model is None:
+            self._load_config()
+            print("正在加载embedding模型...")
+            self._embedding_model = SentenceTransformerEncoder(model_name="models/multilingual-e5-large")
+            print("embedding模型加载完成")
+        return self._embedding_model
+    
+    def get_tokenizer(self):
+        if self._tokenizer is None:
+            self._load_config()
+            print("正在加载tokenizer...")
+            self._tokenizer = AutoTokenizer.from_pretrained("models/multilingual-e5-large")
+            print("tokenizer加载完成")
+        return self._tokenizer
+    
+    def _load_config(self):
+        if self._config is None:
+            with open("utils/config.json", "r", encoding="utf-8") as f:
+                self._config = json.load(f)
+        return self._config
+    
+    def get_config(self):
+        return self._load_config()
 
 class RAG:
     def __init__(self, collection_name):
-        self.load_config()
-        self.init_models()
         self.collection_name = collection_name
+        self.model_manager = ModelManager()
+        self.config = self.model_manager.get_config()
         self.init_vector_store()
-
-    def load_config(self):
-        with open("utils/config.json", "r", encoding="utf-8") as f:
-            self.config = json.load(f)
-
-    def init_models(self):
-        # 远程加载模型到缓存
-        # self.embedding_model = SentenceTransformerEncoder(model_name=self.config.get("embedding_model", "intfloat/multilingual-e5-large"))  
-        # self.tokenizer = AutoTokenizer.from_pretrained(self.config.get("tokenizer_model", "intfloat/multilingual-e5-large"))
-        # 加载本地模型
-        self.embedding_model = SentenceTransformerEncoder(model_name="models/multilingual-e5-large")
-        self.tokenizer = SentenceTransformer("models/multilingual-e5-large")
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     def init_vector_store(self):
         """初始化或者加载向量存储"""
+        # 只在需要时加载embedding模型
+        embedding_model = self.model_manager.get_embedding_model()
         self.vector_storage = QdrantStorage(
-            vector_dim=self.embedding_model.get_output_dim(),
+            vector_dim=embedding_model.get_output_dim(),
             path="data/knowledge_base",  
             collection_name=self.collection_name,
         )
-        self.vr = VectorRetriever(embedding_model=self.embedding_model, storage=self.vector_storage)
+        self.vr = VectorRetriever(embedding_model=embedding_model, storage=self.vector_storage)
 
     def embedding(self, data_path = None, data = None, chunk_type = chunk_data_by_title, max_tokens = 500):
         """向量化"""
@@ -41,13 +70,17 @@ class RAG:
                 structured_data = json.load(f)
         else:
             structured_data = data
+        
+        # 只在需要时加载tokenizer
+        tokenizer = self.model_manager.get_tokenizer()
         chunks = chunk_type(
             structured_data,
             MAX_TOKENS=max_tokens,
-            tokenizer=self.tokenizer,
+            tokenizer=tokenizer,
         )
         start_time = time.time()
         for chunk in chunks:
+            print(chunk["chunk_id"], chunk["content"], "\n\n")
             self.vr.process(
                 content=chunk["content"],
                 should_chunk=False,

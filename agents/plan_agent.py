@@ -9,19 +9,21 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from .text2sql_agent import Text2SQL
-
+from colorama import Fore
 class IntentResult(BaseModel):
     intent: List[str]  
     # knowledgebase_name: Optional[dict] = None
     knowledgebase_name: Optional[dict] = {"all_data": 3}
     database_query: Optional[str] = None
+    
 class PlanAgent:
     def __init__(self):
         """初始化PlanAgent"""
         self.load_env()
         self.load_config()
         self.init_agent()
-        self.rag = None
+        # 使用字典缓存不同的RAG实例，避免重复创建
+        self.rag_instances = {}
 
     def load_env(self):
         """加载环境变量"""
@@ -51,67 +53,75 @@ class PlanAgent:
             )
         )
     
-    def init_rag(self, collection_name: str) -> RAG:
-        """初始化RAG实例，支持指定知识库集合"""
-        if self.rag is None or getattr(self.rag, 'collection_name', None) != collection_name:
-            self.rag = RAG(collection_name=collection_name)
-        return self.rag
+    def get_rag_instance(self, collection_name: str) -> RAG:
+        """获取RAG实例，使用缓存避免重复创建"""
+        if collection_name not in self.rag_instances:
+            print(f"创建新的RAG实例: {collection_name}")
+            self.rag_instances[collection_name] = RAG(collection_name=collection_name)
+        return self.rag_instances[collection_name]
 
     def plan(self, query: str) -> Optional[Dict[str, Any]]:
         """执行意图识别和需求分析"""
         if not query or not query.strip():
             return None
+            
         use_msg = self._build_plan_prompt(query)            
-        response = self.agent.step(use_msg)
-        content = response.msg.content
-        result_dict = json.loads(content)
-        result = IntentResult(**result_dict)
-
-        return result.dict()
+        
+        try:
+            response = self.agent.step(use_msg)
+            content = response.msg.content
+            
+            # 检查content是否为空
+            if not content or not content.strip():
+                print(f"警告: GPT返回空内容，使用默认配置")
+                return self._get_default_plan()
+                
+            # 尝试解析JSON
+            result_dict = json.loads(content)
+            result = IntentResult(**result_dict)
+            return result.dict()
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+            print(f"GPT返回内容: {content}")
+            print("使用默认配置继续...")
+            return self._get_default_plan()
+            
+        except Exception as e:
+            print(f"意图识别出错: {e}")
+            return self._get_default_plan()
+    
+    def _get_default_plan(self) -> Dict[str, Any]:
+        """获取默认的意图识别结果"""
+        return {
+            "intent": ["answer_by_knowledgebase"],
+            "knowledgebase_name": {"book_zh": 3}
+        }
             
     def _build_plan_prompt(self, query: str) -> str:
         """构建意图识别的提示词"""
-        return f"""你是一个语义理解和意图识别方面的专家，目的是根据用户的问题进行意图识别和需求分析。涉及的方面一共有4类，具体如下：
-<intent_list>
-• answer_by_database。需要获取实时传感器数据， 数据包括日期时间、溶解氧饱和度、液位(mm)、PH、PH温度(°C)、浊度(NTU)、浊度温度(°C)。
-• answer_by_knowledgebase。需要获取养殖手册和日常操作日志等数据。
-• answer_by_thinking。问题需要推理分析。
-• other。无法明确归类的问题。
-</intent_list>
+        return f"""根据用户问题进行意图识别，返回JSON格式。
 
-<output_format>
-- 输出必须是标准 JSON 字典。
-- 字典包含以下键：
-    • "intent" ：answer_by_database、answer_by_knowledgebase、answer_by_thinking、other。
-    • 如涉及 answer_by_database，必须返回 "database_query"，其值为字符串，是根据用户问题生成的传感器数据查询语句。例如"请查询所有的ph值大于8的数据"。
-    • 如涉及 answer_by_knowledgebase，必须返回 "knowledgebase_name"，其值为字典，包含所涉及的知识库名称和检索的topk值，知识库有养殖手册书"book_zh"、每天的操作日志"log"、全部的知识和数据"all_data"。
-    • 如问题的内容涉及一切关于南美白对虾、循环水养殖系统、水质检测、饲料投喂、疾病防治、日常管理等知识，则返回"knowledgebase_name"为{{"book_zh": k}}，k为检索增强的返回信息个数，需要你根据权重自定义。
-    • 如问题的内容涉及当天每个池子的水温，ph值，氨氮，亚硝酸盐，当天的日常操作还有每日关键点总结等内容，则返回"knowledgebase_name"为{{"log": k}}，k为检索增强的返回信息个数，需要你根据权重自定义。
-</output_format>
+意图类型：
+- answer_by_knowledgebase: 需要查询知识库
+- answer_by_database: 需要查询传感器数据
+- answer_by_thinking: 需要推理分析
 
-以下是示例：
-<example>
-问题: 什么是循环水养殖系统，并简述循环水养殖系统的特点
-答案:
+知识库类型：
+- book_zh: 养殖手册(1-5个结果)
+- log: 操作日志(1-5个结果)
+- all_data: 全部数据(1-5个结果)
+
+
+示例输出：
 {{
     "intent": ["answer_by_knowledgebase"],
-    "knowledgebase_name": {{"book_zh": 5}}
+    "knowledgebase_name": {{"book_zh": 3}}
 }}
-问题: 连续两天亚硝酸盐在0.5–0.6mg/L波动，硝酸盐无明显上升趋势，氨氮为0.05mg/L，现有方法未改善，下一步如何优化水处理？
-答案:
-{{
-    "intent": ["answer_by_knowledgebase", "answer_by_database", "answer_by_thinking"],
-    "knowledgebase_name": {{"book_zh": 3, "log": 2}},
-    "database_query": "请查询所有六月二十四和六月二十五的数据"
-}}
-</example>
-请根据以下问题，判断用户意图，提取相关信息，严格遵循JSON格式输出：
-<question>
-{query}
-</question>
-今天的日期是{datetime.now().strftime("%Y%m%d")}
-强调：不需要解释、注释、额外说明，输出只包含 JSON 字典。database_query和knowledgebase_name的值不可为None，请选择最相关的内容输出。
-"""
+
+用户问题：{query}
+
+请直接返回JSON，不要其他说明："""
 
     def data_context(self, query: str) -> str:
         """生成数据库检索提示"""
@@ -125,12 +135,13 @@ class PlanAgent:
             return ""
         knowledge_context = ""
         for knowledgebase_name, topk in knowledgebase.items():
-            rag = self.init_rag(knowledgebase_name)
+            rag = self.get_rag_instance(knowledgebase_name)
             retrieved_knowledge = rag.rag_retrieve(query, topk)
             retrieved_content = knowledgebase_name + "：" + "\n".join(retrieved_knowledge)
             if retrieved_content:
                 knowledge_context += retrieved_content
                 
+        print(Fore.YELLOW+ f"知识库检索结果:\n{knowledge_context}\n")
         return knowledge_context
     
     def cot_context(self) -> str:
