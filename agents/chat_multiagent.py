@@ -103,17 +103,17 @@ class ChatMultiAgent:
     
     def rag_context(self, query: str):
         """用RAG检索并拼接上下文"""
-        
         input_match = re.search(r'Input:\s*(.*)', query, re.DOTALL)
         instruction_match = re.search(r'Instruction:\s*(.*?)(?:\s*Input:|$)', query, re.DOTALL)
         
-        if input_match is not None:
+        if input_match and input_match.group(1).strip() != "None":
             rag_query = input_match.group(1).strip()
-        elif instruction_match is not None:
+        elif instruction_match:
             rag_query = instruction_match.group(1).strip()
         else:
             rag_query = query
         rag_contexts = self.plan_agent.process_query(rag_query)
+
         return rag_contexts
 
 
