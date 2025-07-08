@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.societies import RolePlaying 
-from .plan_agent import PlanAgent
+from agents.plan_agent import PlanAgent
 from colorama import Fore
 
 class ChatMultiAgent:
@@ -155,7 +155,7 @@ class ChatMultiAgent:
 if __name__ == "__main__":
     # 创建聊天多智能体实例
     chat_agent = ChatMultiAgent()
-    query = "如何管理维护大棚供电电源。"
+    query = input("请输入问题")
     output_msg = chat_agent.run(query)
     print(output_msg)
 

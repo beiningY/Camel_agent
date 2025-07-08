@@ -1,4 +1,4 @@
-from plan_agent import PlanAgent
+from agents.plan_agent import PlanAgent
 from camel.agents import ChatAgent
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
