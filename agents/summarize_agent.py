@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 import json
 
-class MainAgent:
+class SummarizeAgent:
     def __init__(self):
         self.plan_agent = PlanAgent()
         self.load_env()
@@ -30,7 +30,7 @@ class MainAgent:
     
     def init_agent(self):
         self.agent = ChatAgent(
-            system_message="你是一个南美白对虾的养殖专家，你的任务是根据用户的问题，结合养殖手册和操作日志，给出专业的养殖建议。",
+            system_message="你是一个擅长总结的专家，你的任务是根据用户的主问题，通过养殖员和专家顾问的对话形式，总结出最终的答案。",
             model=ModelFactory.create(
                 model_platform=ModelPlatformType.OPENAI,
                 model_type=ModelType.GPT_4O_MINI,
@@ -47,12 +47,3 @@ class MainAgent:
         print(final_query)
         response = self.agent.step(final_query)
         return response.msg.content
-
-if __name__ == "__main__":
-    main_agent = MainAgent()
-    query = input("请输入问题：")
-    result = main_agent.reponse_agent(query)
-    print("="*50)
-    print("最终的回答:")
-    print("="*50)
-    print(result)
