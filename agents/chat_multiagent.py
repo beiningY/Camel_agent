@@ -46,6 +46,7 @@ class ChatMultiAgent:
 
 
     def create_society(self, query: str):
+
         """创建助手角色参数"""
         assistant_role_kwargs = {
             'assistant_role_name': '南美白对虾养殖专家',

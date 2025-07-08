@@ -2,36 +2,41 @@
 
 from flask import Flask, request, jsonify
 import logging
+import threading
 
-# 假设 ChatMultiAgent 位于 agents 子目录中
-# 您需要根据实际情况调整这里的导入
-try:
-    from agents import ChatMultiAgent
-except ImportError:
-    # 处理可能的不同目录结构
-    from .agents import ChatMultiAgent
-
+from main import main  as run 
+from agents import ChatMultiAgent
 # --- 初始化 ---
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CamelAgentAPI")
 
-# --- 核心：在服务启动时就加载模型/智能体 ---
-# 这确保了模型只被加载一次，后续请求可以复用，性能高。
-logger.info("正在初始化 ChatMultiAgent 实例...")
-try:
-    chat_agent = ChatMultiAgent()
-    logger.info("ChatMultiAgent 初始化成功！")
-except Exception as e:
-    logger.error(f"初始化 ChatMultiAgent 失败: {e}", exc_info=True)
-    chat_agent = None
+chat_agent = None
+is_ready = False # <-- 新增一个状态标志
 
+def initialize_agent():
+    """在后台线程中执行耗时的初始化。"""
+    global chat_agent, is_ready
+    logger.info("后台初始化线程已启动...")
+    try:
+        agent_instance = ChatMultiAgent()
+        # --- [关键] 预热调用 ---
+        # 尝试用一个无意义的、简单的输入来调用一次run方法，以触发所有模型的加载。
+        logger.info("正在预热 ChatMultiAgent，这可能需要几分钟...")
+        # agent_instance.run("预热查询，请忽略。")
+        
+        chat_agent = agent_instance
+        is_ready = True
+        logger.info("ChatMultiAgent 已预热完毕，服务准备就绪！")
+    except Exception as e:
+        logger.error(f"后台初始化 ChatMultiAgent 失败: {e}", exc_info=True)
 
 # --- API 端点 ---
 @app.route('/api/run_query', methods=['POST'])
 def run_query():
-    if not chat_agent:
-        return jsonify({"error": "专家智能体未能成功初始化，请检查服务日志。"}), 500
+    if not is_ready or not chat_agent:
+        return jsonify({"error": "专家智能体正在初始化中，请稍后再试。"}), 503 
+
 
     data = request.json
     if not data or 'query' not in data:
@@ -42,7 +47,7 @@ def run_query():
 
     try:
         # 调用 run 方法
-        output_msg = chat_agent.run(query)
+        output_msg = run(query)
         
         # --- 结果解析 ---
         # 根据您上次的提示，我们假设结果是一个对象或字典
@@ -62,5 +67,11 @@ def run_query():
 
 # --- 启动服务 ---
 if __name__ == '__main__':
-    # 建议选择一个不常用的端口，避免与主应用冲突
+    # 启动后台初始化线程
+    init_thread = threading.Thread(target=initialize_agent)
+    init_thread.daemon = True 
+    init_thread.start()
+    
+    # 启动 Flask 应用
+    logger.info("Flask服务已启动，正在等待后台智能体初始化完成...")
     app.run(host='0.0.0.0', port=5001)
