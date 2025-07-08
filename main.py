@@ -18,7 +18,7 @@ if __name__ == "__main__":
     chat_result = chat_agent.run(query)
     # 创建总结智能体
     summarize_agent = SummarizeAgent()
-    output = summarize_agent.reponse_agent(chat_result)
+    output = summarize_agent.reponse_agent(query, chat_result)
     print(output)
     
  

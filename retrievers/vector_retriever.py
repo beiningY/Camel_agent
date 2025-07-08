@@ -1,6 +1,6 @@
 import json
 import time
-from embedding import chunk_data_by_title, chunk_data_for_log
+from embeddings import chunk_data_by_title, chunk_data_for_log
 from camel.embeddings import SentenceTransformerEncoder
 from camel.storages import QdrantStorage
 from camel.retrievers import VectorRetriever
@@ -91,6 +91,7 @@ class RAG:
 
     def rag_retrieve(self, query, topk=None):
         """进行检索"""
+        print(f"RAG检索开始，检索的query是：{query}")
         results = self.vr.query(
             query=query, 
             top_k=topk if topk is not None else self.config.get("vector_top_k", 5), 
@@ -99,6 +100,8 @@ class RAG:
         retrieved = []
         for i, info in enumerate(results):
             retrieved.append(f"{i+1}. {info['text']}\n\n")  
+        print("RAG检索结果:")
+        print(retrieved)
         return retrieved          
     
 

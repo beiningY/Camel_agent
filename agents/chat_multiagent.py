@@ -118,7 +118,7 @@ class ChatMultiAgent:
 
 
 
-    def run(self, query: str, chat_turn_limit=3) -> None:
+    def run(self, query: str, chat_turn_limit=10) -> None:
         society = self.create_society(query)
         assiatant_sys_content = society.assistant_sys_msg.content
         #print(Fore.GREEN+ f"助手系统消息:\n{society.assistant_sys_msg}\n")
@@ -150,12 +150,7 @@ class ChatMultiAgent:
             input_msg = assistant_response.msg
             
             output_msg += f"第{n}轮养殖员的输出:\n{user_response.msg.content}\n" + f"第{n}轮专家顾问的输出:\n{assistant_response.msg.content}\n"
+        print(f"最终的对话结果:\n{output_msg}\n")
         return output_msg
 
-if __name__ == "__main__":
-    # 创建聊天多智能体实例
-    chat_agent = ChatMultiAgent()
-    query = input("请输入问题")
-    output_msg = chat_agent.run(query)
-    print(output_msg)
 

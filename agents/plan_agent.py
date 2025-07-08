@@ -13,7 +13,7 @@ from colorama import Fore
 class IntentResult(BaseModel):
     intent: List[str]  
     # knowledgebase_name: Optional[dict] = None
-    knowledgebase_name: Optional[dict] = {"all_data": 3}
+    knowledgebase_name: Optional[dict] = {"all_data": 5}
     database_query: Optional[str] = None
     
 class PlanAgent:
@@ -206,10 +206,8 @@ class PlanAgent:
     def process_query(self, query: str) -> str:
         plan_result = self.plan(query)
         result = self.generate_prompt(query, plan_result)
-        """print("="*50)
         print("意图识别和需求分析结果是："+str(plan_result))
-        print("="*50)
-        print("="*50)
+        """print("="*50)
         print("综合提示结果是："+result)"""
         return result
 
