@@ -100,27 +100,47 @@ class PlanAgent:
             
     def _build_plan_prompt(self, query: str) -> str:
         """构建意图识别的提示词"""
-        return f"""根据用户问题进行意图识别，返回JSON格式。
+        return f"""你是一个语义理解和意图识别方面的专家，目的是根据用户的问题进行意图识别和需求分析。涉及的方面一共有4类，具体如下：
+<intent_list>
+• answer_by_database。需要获取实时传感器数据， 数据包括日期时间、溶解氧饱和度、液位(mm)、PH、PH温度(°C)、浊度(NTU)、浊度温度(°C)。
+• answer_by_knowledgebase。需要获取养殖手册和日常操作日志等数据。
+• answer_by_thinking。问题需要推理分析。
+• other。无法明确归类的问题。
+</intent_list>
 
-意图类型：
-- answer_by_knowledgebase: 需要查询知识库
-- answer_by_database: 需要查询传感器数据
-- answer_by_thinking: 需要推理分析
+<output_format>
+- 输出必须是标准 JSON 字典。
+- 字典包含以下键：
+    • "intent" ：answer_by_database、answer_by_knowledgebase、answer_by_thinking、other。
+    • 如涉及 answer_by_database，必须返回 "database_query"，其值为字符串，是根据用户问题生成的传感器数据查询语句。例如"请查询所有的ph值大于8的数据"。
+    • 如涉及 answer_by_knowledgebase，必须返回 "knowledgebase_name"，其值为字典，包含所涉及的知识库名称和检索的topk值，知识库有养殖手册书"book_zh"、每天的操作日志"log"、全部的知识和数据"all_data"。
+    • 如问题的内容涉及一切关于南美白对虾、循环水养殖系统、水质检测、饲料投喂、疾病防治、日常管理等知识，则返回"knowledgebase_name"为{{"book_zh": k}}，k为检索增强的返回信息个数，需要你根据权重自定义。
+    • 如问题的内容涉及当天每个池子的水温，ph值，氨氮，亚硝酸盐，当天的日常操作还有每日关键点总结等内容，则返回"knowledgebase_name"为{{"log": k}}，k为检索增强的返回信息个数，需要你根据权重自定义。
+</output_format>
 
-知识库类型：
-- log: 操作日志(1-5个结果)
-- all_data: 全部数据(1-5个结果)
-- book_zh: 养殖手册(1-5个结果)
-
-示例输出：
+以下是示例：
+<example>
+问题: 什么是循环水养殖系统，并简述循环水养殖系统的特点
+答案:
 {{
     "intent": ["answer_by_knowledgebase"],
-    "knowledgebase_name": {{"all_data": 5}}
+    "knowledgebase_name": {{"book_zh": 5}}
 }}
-
-用户问题：{query}
-
-请直接返回JSON，不要其他说明："""
+问题: 连续两天亚硝酸盐在0.5–0.6mg/L波动，硝酸盐无明显上升趋势，氨氮为0.05mg/L，现有方法未改善，下一步如何优化水处理？
+答案:
+{{
+    "intent": ["answer_by_knowledgebase", "answer_by_database", "answer_by_thinking"],
+    "knowledgebase_name": {{"book_zh": 3, "log": 2}},
+    "database_query": "请查询所有六月二十四和六月二十五的数据"
+}}
+</example>
+请根据以下问题，判断用户意图，提取相关信息，严格遵循JSON格式输出：
+<question>
+{query}
+</question>
+今天的日期是{datetime.now().strftime("%Y%m%d")}
+强调：不需要解释、注释、额外说明，输出只包含 JSON 字典。database_query和knowledgebase_name的值不可为None，请选择最相关的内容输出。
+"""
 
     def data_context(self, query: str) -> str:
         """生成数据库检索提示"""
