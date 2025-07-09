@@ -31,6 +31,7 @@ def initialize_agent():
     except Exception as e:
         logger.error(f"后台初始化 ChatMultiAgent 失败: {e}", exc_info=True)
 
+
 # --- API 端点 ---
 @app.route('/api/run_query', methods=['POST'])
 def run_query():
@@ -43,6 +44,7 @@ def run_query():
         return jsonify({"error": "请求体中必须包含 'query' 字段。"}), 400
 
     query = data['query']
+    print(f"收到查询请求: '{query}'")
     logger.info(f"收到查询请求: '{query}'")
 
     try:
@@ -64,6 +66,10 @@ def run_query():
     except Exception as e:
         logger.exception(f"执行 chat_agent.run 时出错: {e}")
         return jsonify({"error": f"执行查询时发生内部错误: {str(e)}"}), 500
+
+
+
+
 
 # --- 启动服务 ---
 if __name__ == '__main__':
